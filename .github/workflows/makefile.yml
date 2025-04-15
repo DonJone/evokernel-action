@@ -90,23 +90,15 @@ jobs:
 
       - name: Initialize repo and sync
         run: |
-         mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
-         repo sync
-         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
-         sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
-         sed -i 's/ -dirty//g' kernel_platform/external/dtc/scripts/setlocalversion
-      
-      - name: KernelSU & SukiSU version
-        if: ${{ github.event.inputs.kernelsu_variant == 'Official' || github.event.inputs.kernelsu_variant == 'SukiSU' }}
+          mkdir -p ~/op12_kernel && cd ~/op12_kernel
+          repo init -u https://github.com/op12-evolution-x/kernel_manifest -b vic --git-lfs
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+      - name: Build KernelSU and SukiSU
         run: |
-          if [[ "${{ github.event.inputs.kernelsu_version }}" == "tag" ]]; then
-            echo "BRANCH=-" >> $GITHUB_ENV
-          elif [[ "${{ github.event.inputs.kernelsu_version }}" == "main" ]]; then
-            echo "BRANCH=-s susfs-dev" >> $GITHUB_ENV
-          fi
+          cd ~/op12_kernel
+          source build/envsetup.sh
+          lunch lineage_waffle-bp1a-user
+          mka bootimage
           
       - name: Add KernelSU-SukiSU
         if: ${{ github.event.inputs.kernelsu_variant == 'SukiSU' }}
